@@ -16,17 +16,23 @@ class PayGenius(object):
         x_secret = ""
 
     def send_request(self, url, data):
-        new_url = url + "\n" + ("%s" % json.dumps(data))
+        if data != {}:
+            new_url = url + "\n" + ("%s" % json.dumps(data))
+        else:
+            new_url = url
         signature = hmac.new(self.x_secret, new_url, digestmod=hashlib.sha256).hexdigest()
-
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'X-Signature': signature,
             'X-Token': self.x_token,
         }
-        r = requests.post(url, json=data, headers=headers)
-        return r.json()
+        if data != {}:
+            r = requests.post(url, json=data, headers=headers)
+        else:
+            r = requests.get(url, headers=headers)
+        msg = r.json()
+        return msg
 
     def redirect(self, request, invoice, customer, amount):
         success_url = "http://%s%s" % (request.META['HTTP_HOST'], reverse("pg_success"))
@@ -55,7 +61,7 @@ class PayGenius(object):
     def redirect_lookup(self, reference):
         data = {}
         payment_url = "%sredirect/%s" % (self.validate_url, reference)
-        return self.send_request(payment_url, data=data)
+        return self.send_request(payment_url, data={})
 
     def lookup(self, data):
         payment_url = "%scard/lookup" % self.validate_url
